@@ -33,38 +33,33 @@ import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
 
+import com.mpatric.mp3agic.InvalidDataException;
+import com.mpatric.mp3agic.NotSupportedException;
+import com.mpatric.mp3agic.UnsupportedTagException;
+
 import at.dcosta.tonuino.cardadmin.Mp3Player;
 import at.dcosta.tonuino.cardadmin.Track;
 import at.dcosta.tonuino.cardadmin.TrackListener;
 import at.dcosta.tonuino.cardadmin.util.FileNames;
 
-public class FilesystemView implements DirectorySelectionListener, TrackListener {
+public class FilesystemView implements DirectorySelectionListener, TrackListener, ActionListener {
 
+	private static final String CMD_NORMALIZE = "normalize";
+	private static final String CMD_SAVE_ID_TAGS = "saveIdTags";
 	private JTable trackTable;
 	private JFrame frame;
 	private JScrollPane fileScrollPane;
 	private TrackTableModel trackTableModel;
 	private Mp3Player mp3Player;
 	private JButton writeTags;
-	
+
 	public FilesystemView() {
 		mp3Player = new Mp3Player();
 	}
 
-	public static void main(String[] args) throws IOException {
-		try {
-			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-			JFrame.setDefaultLookAndFeelDecorated(true);
-		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
-				| UnsupportedLookAndFeelException e) {
-			e.printStackTrace();
-		}
-		new FilesystemView().show();
-	}
-
 	private JPanel createHeaderButtons(FolderTree folderTree) {
 		JPanel headerPanel = new JPanel();
-		headerPanel.setBorder(new EmptyBorder(5,5,5,5));
+		headerPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
 		headerPanel.setLayout(new BorderLayout());
 		JButton newFolder = new JButton("neuer Ordner");
 		newFolder.addActionListener(new ActionListener() {
@@ -142,19 +137,23 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 		JPanel footerPanel = new JPanel();
 		footerPanel.setLayout(new FlowLayout());
 		JButton normalize = new JButton("Tracks normalisieren");
+		normalize.setActionCommand(CMD_NORMALIZE);
+		normalize.addActionListener(this);
 		writeTags = new JButton("ID-Tags speichern");
+		writeTags.setActionCommand(CMD_SAVE_ID_TAGS);
+		writeTags.addActionListener(this);
 		writeTags.setEnabled(false);
-		
+
 		footerPanel.add(normalize);
 		footerPanel.add(writeTags);
 		return footerPanel;
 	}
 
-	private void show() throws IOException {
+	public void show() throws IOException {
 		trackTableModel = new TrackTableModel();
 
 		frame = new JFrame("Tonuino Card Admin");
-		frame.setLayout(new BorderLayout(5,5));
+		frame.setLayout(new BorderLayout(5, 5));
 
 		JPanel filesPanel = new JPanel();
 		filesPanel.setLayout(new BoxLayout(filesPanel, BoxLayout.Y_AXIS));
@@ -225,11 +224,12 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 					// header
 					TableColumn col = trackTable.getColumnModel().getColumn(column);
 					TableCellRenderer renderer = col.getHeaderRenderer();
-					if (renderer == null)					{
+					if (renderer == null) {
 						renderer = trackTable.getTableHeader().getDefaultRenderer();
 					}
-					width = Math.max(width,
-							renderer.getTableCellRendererComponent(trackTable, col.getHeaderValue(), false, false, -1, column).getPreferredSize().width);
+					width = Math.max(width, renderer
+							.getTableCellRendererComponent(trackTable, col.getHeaderValue(), false, false, -1, column)
+							.getPreferredSize().width);
 					if (width > 300) {
 						width = 300;
 					}
@@ -254,7 +254,7 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 	@Override
 	public void pathSelected(File path) {
 		try {
-			writeTags.setEnabled(false);	
+			writeTags.setEnabled(false);
 			update(path);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -264,7 +264,36 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 
 	@Override
 	public void trackChanged(Track track) {
-		writeTags.setEnabled(true);		
+		writeTags.setEnabled(true);
+	}
+
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		if (e.getActionCommand() == CMD_SAVE_ID_TAGS) {
+			writeTags.setEnabled(false);
+			WaitDialog wait = new WaitDialog();
+			SwingWorker<Void, Void> worker = new SwingWorker<>() {
+				@Override
+				protected Void doInBackground() throws Exception {
+					trackTableModel.getTracks().forEach(t -> {
+						try {
+							t.save();
+						} catch (UnsupportedTagException | InvalidDataException | NotSupportedException | IOException e1) {
+							// TODO Auto-generated catch block
+							e1.printStackTrace();
+						}
+					});
+					return null;
+				}
+
+				protected void done() {					
+					wait.close();
+				}
+
+			};
+			worker.execute();
+			wait.makeWait("Bitte warten", "Die ID-Tags werden gespeichert...", frame);
+		}
 	}
 
 }

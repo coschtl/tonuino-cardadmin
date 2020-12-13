@@ -1,7 +1,11 @@
 package at.dcosta.tonuino.cardadmin;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.Objects;
 
 import com.mpatric.mp3agic.ID3v1;
@@ -21,7 +25,7 @@ public class Track {
 	private String title;
 	private int trackNumber;
 	private ID3v1 tag;
-	private boolean dirty;
+	private boolean modified;
 	private TrackListener listener;
 
 	public Track(Path path) throws UnsupportedTagException, InvalidDataException, IOException {
@@ -57,7 +61,7 @@ public class Track {
 			artist = null;
 			setTitle(path.toFile().getName());
 			trackNumber = 0;
-			setDirty();
+			setModified();
 		}
 	}
 
@@ -83,7 +87,7 @@ public class Track {
 
 	public void setAlbum(String album) {
 		if (!Objects.equals(album, this.album)) {
-			setDirty();
+			setModified();
 		}
 		this.album = album;
 		tag.setAlbum(album);
@@ -91,7 +95,7 @@ public class Track {
 
 	public void setArtist(String artist) {
 		if (!Objects.equals(artist, this.artist)) {
-			setDirty();
+			setModified();
 		}
 		this.artist = artist;
 		tag.setArtist(artist);
@@ -99,7 +103,7 @@ public class Track {
 
 	public void setTitle(String title) {
 		if (!Objects.equals(title, this.title)) {
-			setDirty();
+			setModified();
 		}
 		this.title = title;
 		tag.setTitle(title);
@@ -107,7 +111,7 @@ public class Track {
 
 	public void setTrackNumber(int trackNumber) {
 		if (trackNumber != this.trackNumber) {
-			setDirty();
+			setModified();
 		}
 		this.trackNumber = trackNumber;
 		tag.setTrack(Integer.toString(trackNumber));
@@ -115,7 +119,7 @@ public class Track {
 
 	public void writeTo(String path)
 			throws UnsupportedTagException, InvalidDataException, IOException, NotSupportedException {
-		if (!dirty) {
+		if (!isModified()) {
 			return;
 		}
 		if (tag instanceof ID3v2) {
@@ -124,6 +128,15 @@ public class Track {
 			mp3File.setId3v1Tag(tag);
 		}
 		mp3File.save(path);
+	}
+	
+	public void save() throws IOException, UnsupportedTagException, InvalidDataException, NotSupportedException {
+		if (!isModified()) {
+			return;
+		}
+		Path tmp = File.createTempFile(getPath().getFileName().toString(), ".tmp").toPath();
+		writeTo(tmp.toString());
+		Files.move(tmp, getPath(), StandardCopyOption.REPLACE_EXISTING);
 	}
 
 	@Override
@@ -134,14 +147,18 @@ public class Track {
 
 	public Track setTrackListener(TrackListener listener) {
 		this.listener = listener;
-		if (dirty) {
+		if (modified) {
 			listener.trackChanged(this);
 		}
 		return this;
 	}
+	
+	public boolean isModified() {
+		return modified;
+	}
 
-	private void setDirty() {
-		dirty = true;
+	private void setModified() {
+		modified = true;
 		if (listener != null) {
 			listener.trackChanged(this);
 		}

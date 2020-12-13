@@ -202,6 +202,10 @@ public class TrackTableModel extends AbstractTableModel  {
 
 		return null;
 	}
+	
+	public List<Track> getTracks() {
+		return tracks;
+	}
 
 	@SuppressWarnings("unchecked")
 	@Override
