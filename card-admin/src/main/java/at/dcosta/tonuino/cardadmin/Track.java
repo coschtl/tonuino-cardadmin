@@ -1,0 +1,150 @@
+package at.dcosta.tonuino.cardadmin;
+
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.Objects;
+
+import com.mpatric.mp3agic.ID3v1;
+import com.mpatric.mp3agic.ID3v1Tag;
+import com.mpatric.mp3agic.ID3v2;
+import com.mpatric.mp3agic.InvalidDataException;
+import com.mpatric.mp3agic.Mp3File;
+import com.mpatric.mp3agic.NotSupportedException;
+import com.mpatric.mp3agic.UnsupportedTagException;
+
+public class Track {
+	private final Path path;
+	private final Mp3File mp3File;
+
+	private String album;
+	private String artist;
+	private String title;
+	private int trackNumber;
+	private ID3v1 tag;
+	private boolean dirty;
+	private TrackListener listener;
+
+	public Track(Path path) throws UnsupportedTagException, InvalidDataException, IOException {
+		this.path = path;
+		this.mp3File = new Mp3File(path);
+
+		if (mp3File.hasId3v1Tag()) {
+			tag = mp3File.getId3v1Tag();
+		} else if (mp3File.hasId3v2Tag()) {
+			tag = mp3File.getId3v2Tag();
+		}
+		if (tag != null) {
+			album = tag.getAlbum();
+			artist = tag.getArtist();
+			title = tag.getTitle();
+			if (title == null || title.isBlank()) {
+				setTitle(path.getFileName().toString());
+			}
+			String trackNo = tag.getTrack();
+			int trackNumberInt = 0;
+			if (trackNo != null) {
+				try {
+					trackNumberInt = Integer.parseInt(trackNo);
+				} catch (Exception e) {
+					// ignore
+				}
+			}
+			trackNumber = trackNumberInt;
+		} else {
+			tag = new ID3v1Tag();
+			mp3File.setId3v1Tag(tag);
+			album = null;
+			artist = null;
+			setTitle(path.toFile().getName());
+			trackNumber = 0;
+			setDirty();
+		}
+	}
+
+	public Path getPath() {
+		return path;
+	}
+
+	public String getAlbum() {
+		return album;
+	}
+
+	public String getArtist() {
+		return artist;
+	}
+
+	public String getTitle() {
+		return title;
+	}
+
+	public int getTrackNumber() {
+		return trackNumber;
+	}
+
+	public void setAlbum(String album) {
+		if (!Objects.equals(album, this.album)) {
+			setDirty();
+		}
+		this.album = album;
+		tag.setAlbum(album);
+	}
+
+	public void setArtist(String artist) {
+		if (!Objects.equals(artist, this.artist)) {
+			setDirty();
+		}
+		this.artist = artist;
+		tag.setArtist(artist);
+	}
+
+	public void setTitle(String title) {
+		if (!Objects.equals(title, this.title)) {
+			setDirty();
+		}
+		this.title = title;
+		tag.setTitle(title);
+	}
+
+	public void setTrackNumber(int trackNumber) {
+		if (trackNumber != this.trackNumber) {
+			setDirty();
+		}
+		this.trackNumber = trackNumber;
+		tag.setTrack(Integer.toString(trackNumber));
+	}
+
+	public void writeTo(String path)
+			throws UnsupportedTagException, InvalidDataException, IOException, NotSupportedException {
+		if (!dirty) {
+			return;
+		}
+		if (tag instanceof ID3v2) {
+			mp3File.setId3v2Tag((ID3v2) tag);
+		} else {
+			mp3File.setId3v1Tag(tag);
+		}
+		mp3File.save(path);
+	}
+
+	@Override
+	public String toString() {
+		return "Track [path=" + path + ", album=" + album + ", artist=" + artist + ", title=" + title + ", trackNumber="
+				+ trackNumber + "]";
+	}
+
+	public Track setTrackListener(TrackListener listener) {
+		this.listener = listener;
+		if (dirty) {
+			listener.trackChanged(this);
+		}
+		return this;
+	}
+
+	private void setDirty() {
+		dirty = true;
+		if (listener != null) {
+			listener.trackChanged(this);
+		}
+	}
+
+}
