@@ -17,13 +17,11 @@ import com.mpatric.mp3agic.UnsupportedTagException;
 
 import at.dcosta.tonuino.cardadmin.Track;
 import at.dcosta.tonuino.cardadmin.TrackListener;
+import at.dcosta.tonuino.cardadmin.util.FileNames;
 
 public class TrackTableModel extends AbstractTableModel {
 
 	private static final long serialVersionUID = 1L;
-
-	private static final String CMD_UP = "up_";
-	private static final String CMD_DOWN = "down_";
 
 	private static final int MIN_EDIT_VALUE = 2;
 	private static final int MAX_EDIT_VALUE = 5;
@@ -48,20 +46,22 @@ public class TrackTableModel extends AbstractTableModel {
 	});
 
 	private final List<TableHeader> header;
+	private final ErrorDisplay errorDisplay;
 	private List<Track> tracks;
 
-	public TrackTableModel() {
+	public TrackTableModel(ErrorDisplay errorDisplay) {
 		this.header = new ArrayList<>();
+		this.errorDisplay = errorDisplay;
 		createHeader();
 	}
 
 	public void update(File folder, TrackListener trackListener) throws IOException {
 		this.tracks = Files.list(folder.toPath())
-				.filter(file -> file.getFileName().toString().toLowerCase().endsWith(".mp3")).map(file -> {
+				.filter(file -> file.getFileName().toString().toLowerCase().endsWith(FileNames.SUFFIX_MP3)).map(file -> {
 					try {
 						return new Track(file).setTrackListener(trackListener);
 					} catch (UnsupportedTagException | InvalidDataException | IOException e) {
-						System.out.println(file.getFileName() + ": " + e.toString());
+						errorDisplay.showError("Can not read Tracks:", e);
 						return null;
 					}
 				}).filter(track -> track != null).collect(Collectors.toList());
@@ -69,9 +69,6 @@ public class TrackTableModel extends AbstractTableModel {
 
 			@Override
 			public int compare(Track t1, Track t2) {
-				// System.out.println("SORT: " + t1.getPath().toString() + " - " +
-				// t2.getPath().toString()
-				// +t1.getPath().toString().compareTo(t2.getPath().().toString()) );
 				return t1.getPath().toString().compareTo(t2.getPath().toString());
 			}
 		});

@@ -17,14 +17,14 @@ public final class FileNames {
 	private static final Pattern PATTERN_FILE = Pattern.compile("^\\d\\d\\d.mp3$", Pattern.CASE_INSENSITIVE);
 
 	public static String getNextFolderName(File parentFolder) throws IOException {
-		return getNextName(parentFolder, 100, PATTERN_DIR);
+		return getNextNumber(parentFolder, 100, PATTERN_DIR);
 	}
 
-	public static String getNextFileName(File parentFolder) throws IOException {
-		return getNextName(parentFolder, 1000, PATTERN_FILE);
+	public static String getNextFileNumber(File parentFolder) throws IOException {
+		return getNextNumber(parentFolder, 1000, PATTERN_FILE);
 	}
 
-	public static String getNextName(File parentFolder, int toAdd, Pattern pattern) throws IOException {
+	public static String getNextNumber(File parentFolder, int toAdd, Pattern pattern) throws IOException {
 		List<Path> files = Files.list(parentFolder.toPath())
 				.filter(path -> pattern.matcher(path.getFileName().toString()).matches()).sorted()
 				.collect(Collectors.toList());
@@ -54,7 +54,7 @@ public final class FileNames {
 	}
 
 	public static Iterator<String> getNextFileNames(File parentFolder) throws IOException {
-		int base = Integer.parseInt(getNextFileName(parentFolder));
+		int base = Integer.parseInt(getNextFileNumber(parentFolder));
 		return new Iterator<String>() {
 			int i = 0;
 
@@ -65,7 +65,7 @@ public final class FileNames {
 
 			@Override
 			public String next() {
-				return Integer.toString(1000 + base + i++).substring(1);
+				return Integer.toString(1000 + base + i++).substring(1) + SUFFIX_MP3;
 			}
 		};
 	}

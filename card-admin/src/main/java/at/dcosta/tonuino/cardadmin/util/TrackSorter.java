@@ -11,12 +11,13 @@ import java.util.List;
 import java.util.Map;
 
 import at.dcosta.tonuino.cardadmin.Track;
+import at.dcosta.tonuino.cardadmin.ui.ErrorDisplay;
 
 public class TrackSorter {
 
 	private static final Logger LOGGER = System.getLogger(TrackSorter.class.getName());
 
-	public static void correctFilenames(List<Track> tracks) {
+	public static void correctFilenames(List<Track> tracks, ErrorDisplay errorDisplay) {
 		if (tracks.isEmpty()) {
 			return;
 		}
@@ -31,7 +32,7 @@ public class TrackSorter {
 					Files.move(t.getPath(), tmpPath);
 					LogUtil.debug(LOGGER, "rename1: ", t.getPath(), " -> ", tmpPath);
 				} catch (IOException e) {
-					throw new RuntimeException(e);
+					errorDisplay.showError("Can not rename tracks", e);
 				}
 				renames.put(tmpPath, newPath);
 			}
@@ -41,7 +42,7 @@ public class TrackSorter {
 				Files.move(e.getKey(), e.getValue());
 				LogUtil.debug(LOGGER, "rename2: ", e.getKey(), " -> ", e.getValue());
 			} catch (IOException ex) {
-				throw new RuntimeException(ex);
+				errorDisplay.showError("Can not rename tracks", ex);
 			}
 		});
 	}

@@ -1,9 +1,11 @@
 package at.dcosta.tonuino.cardadmin.ui;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.FlowLayout;
-import java.awt.MouseInfo;
+import java.awt.Font;
+import java.awt.Insets;
 import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -19,12 +21,15 @@ import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JRootPane;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.JTextArea;
 import javax.swing.SwingWorker;
 import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.plaf.DimensionUIResource;
 import javax.swing.table.TableCellRenderer;
@@ -38,10 +43,11 @@ import com.mpatric.mp3agic.UnsupportedTagException;
 import at.dcosta.tonuino.cardadmin.Mp3Player;
 import at.dcosta.tonuino.cardadmin.Track;
 import at.dcosta.tonuino.cardadmin.TrackListener;
+import at.dcosta.tonuino.cardadmin.util.ExceptionUtil;
 import at.dcosta.tonuino.cardadmin.util.FileNames;
 import at.dcosta.tonuino.cardadmin.util.TrackSorter;
 
-public class FilesystemView implements DirectorySelectionListener, TrackListener, ActionListener {
+public class FilesystemView implements DirectorySelectionListener, TrackListener, ActionListener, ErrorDisplay {
 
 	private static final String CMD_NORMALIZE = "normalize";
 	private static final String CMD_SAVE_ID_TAGS = "saveIdTags";
@@ -53,6 +59,9 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 	private Mp3Player mp3Player;
 	private JButton writeTags;
 	private JButton persistTrackOrder;
+	private JLabel errorSummary;
+	private JTextArea errorDetail;
+	private JPanel error;
 
 	public FilesystemView() {
 		mp3Player = new Mp3Player();
@@ -75,9 +84,8 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 					try {
 						new File(parent, FileNames.getNextFolderName(parent)).mkdir();
 						folderTree.folderAdded();
-					} catch (IOException e1) {
-						// TODO Auto-generated catch block
-						e1.printStackTrace();
+					} catch (IOException ex) {
+						showError("Can not create new folder:", ex);
 					}
 				}
 			}
@@ -101,7 +109,7 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 
 					@Override
 					public boolean accept(File f) {
-						return f.isDirectory() || f.getName().toLowerCase().endsWith(".mp3");
+						return f.isDirectory() || f.getName().toLowerCase().endsWith(FileNames.SUFFIX_MP3);
 					}
 				});
 				fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
@@ -113,17 +121,11 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 						Iterator<String> targetFileNames = FileNames.getNextFileNames(target);
 						for (File file : fc.getSelectedFiles()) {
 							Path source = file.toPath();
-							new Track(source)
-									.writeTo(new File(target, targetFileNames.next() + ".mp3").getAbsolutePath());
-//
-//							File tmp = new File(source.toString()+".tmp");
-//							new Track(source).writeTo(tmp.getAbsolutePath());
-//							Files.move(tmp.toPath(), new File(target, targetFileNames.next() + ".mp3").toPath(), StandardCopyOption.COPY_ATTRIBUTES);
+							new Track(source).writeTo(new File(target, targetFileNames.next()).getAbsolutePath());
 						}
 						update(target);
-					} catch (Exception e1) {
-						// TODO Auto-generated catch block
-						e1.printStackTrace();
+					} catch (Exception ex) {
+						showError("Can not add files:", ex);
 					}
 				}
 			}
@@ -159,7 +161,7 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 	}
 
 	public void show() throws IOException {
-		trackTableModel = new TrackTableModel();
+		trackTableModel = new TrackTableModel(this);
 
 		frame = new JFrame("Tonuino Card Admin");
 		frame.setLayout(new BorderLayout(5, 5));
@@ -201,18 +203,47 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 		frame.add(folderTree, BorderLayout.LINE_START);
 
 		frame.add(createHeaderButtons(folderTree), BorderLayout.NORTH);
-
 		frame.add(filesPanel, BorderLayout.CENTER);
+		createErrorDisplay();
+		frame.add(error, BorderLayout.SOUTH);
 		frame.getRootPane().setWindowDecorationStyle(JRootPane.PLAIN_DIALOG);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.pack();
 		frame.setVisible(true);
 
 		update(null);
-
 	}
 
-	private void update(File path) throws IOException {
+	private void createErrorDisplay() {
+		error = new JPanel();
+		error.setBorder(new LineBorder(Color.BLACK));
+		error.setLayout(new BoxLayout(error, BoxLayout.Y_AXIS));
+		error.setAlignmentX(Component.LEFT_ALIGNMENT);
+		errorSummary = new JLabel();
+		errorSummary.setForeground(Color.RED);
+		error.add(errorSummary);
+		error.add(new JLabel(""));
+		errorDetail = new JTextArea();
+		errorDetail.setFont(new Font("Tahoma", Font.PLAIN, 10));
+		errorDetail.setEditable(false);
+		errorDetail.setBackground(errorSummary.getBackground());
+		errorDetail.setBorder(new EmptyBorder(new Insets(1, 1, 1, 1)));
+		JScrollPane scrollPane = new JScrollPane(errorDetail);
+		error.add(scrollPane);
+		error.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				if (e.getButton() != MouseEvent.BUTTON1) {
+					error.setVisible(false);
+					frame.pack();
+				}
+			}
+		});
+		error.setVisible(false);
+		error.setPreferredSize(new DimensionUIResource(frame.getWidth(), 100));
+	}
+
+	private void update(File path) {
 		persistTrackOrder.setEnabled(false);
 		writeTags.setEnabled(false);
 		WaitDialog wait = new WaitDialog();
@@ -252,6 +283,7 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 				}
 				frame.pack();
 				fileScrollPane.setPreferredSize(new DimensionUIResource(totalWidth + 20, 400));
+				error.setPreferredSize(new DimensionUIResource(totalWidth + 20, 100));
 				return null;
 			}
 
@@ -267,12 +299,7 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 
 	@Override
 	public void pathSelected(File path) {
-		try {
-			update(path);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		update(path);
 	}
 
 	@Override
@@ -282,8 +309,9 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
+		showError("Ein Fehler:", new RuntimeException());
 		final List<Track> tracks = trackTableModel.getTracks();
-		if (tracks.isEmpty()) {
+		if (tracks == null || tracks.isEmpty()) {
 			return;
 		}
 		if (e.getActionCommand() == CMD_SAVE_ID_TAGS) {
@@ -296,9 +324,8 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 						try {
 							t.save();
 						} catch (UnsupportedTagException | InvalidDataException | NotSupportedException
-								| IOException e1) {
-							// TODO Auto-generated catch block
-							e1.printStackTrace();
+								| IOException ex) {
+							showError("Can not save ID-Tags", ex);
 						}
 					});
 					return null;
@@ -317,7 +344,7 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 			SwingWorker<Void, Void> worker = new SwingWorker<>() {
 				@Override
 				protected Void doInBackground() throws Exception {
-					TrackSorter.correctFilenames(tracks);
+					TrackSorter.correctFilenames(tracks, FilesystemView.this);
 					return null;
 				}
 
@@ -327,13 +354,21 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 			};
 			worker.execute();
 			wait.makeWait("Bitte warten", "Die Dateien werden umsortiert...", frame);
-			try {
-				update(tracks.get(0).getPath().getParent().toFile());
-			} catch (IOException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
+			update(tracks.get(0).getPath().getParent().toFile());
 		}
+	}
+
+	@Override
+	public void showError(String summary, Throwable t) {
+		showError(summary, ExceptionUtil.getStacktrace(t));
+	}
+
+	@Override
+	public void showError(String summary, String detail) {
+		errorSummary.setText(summary);
+		errorDetail.setText(detail);
+		error.setVisible(true);
+		frame.pack();
 	}
 
 }
