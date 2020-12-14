@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -17,7 +18,7 @@ import com.mpatric.mp3agic.UnsupportedTagException;
 import at.dcosta.tonuino.cardadmin.Track;
 import at.dcosta.tonuino.cardadmin.TrackListener;
 
-public class TrackTableModel extends AbstractTableModel  {
+public class TrackTableModel extends AbstractTableModel {
 
 	private static final long serialVersionUID = 1L;
 
@@ -64,6 +65,16 @@ public class TrackTableModel extends AbstractTableModel  {
 						return null;
 					}
 				}).filter(track -> track != null).collect(Collectors.toList());
+		this.tracks.sort(new Comparator<Track>() {
+
+			@Override
+			public int compare(Track t1, Track t2) {
+				// System.out.println("SORT: " + t1.getPath().toString() + " - " +
+				// t2.getPath().toString()
+				// +t1.getPath().toString().compareTo(t2.getPath().().toString()) );
+				return t1.getPath().toString().compareTo(t2.getPath().toString());
+			}
+		});
 		fireTableDataChanged();
 	}
 
@@ -202,7 +213,7 @@ public class TrackTableModel extends AbstractTableModel  {
 
 		return null;
 	}
-	
+
 	public List<Track> getTracks() {
 		return tracks;
 	}
@@ -226,18 +237,36 @@ public class TrackTableModel extends AbstractTableModel  {
 
 	public void move(int rowId, Direction direction) {
 		System.out.println("MOVE: " + rowId + " " + direction);
+		if (direction == Direction.UP || direction == Direction.DOWN) {
+			int newPos = rowId + (direction == Direction.UP ? -1 : 1);
 
-		int newPos = rowId + (direction == Direction.UP ? -1 : 1);
-		if (newPos < 0 || newPos >= tracks.size()) {
-			return;
-		}
-		Track tmp = tracks.get(newPos);
-		tracks.set(newPos, tracks.get(rowId));
-		tracks.set(rowId, tmp);
-		if (direction == Direction.UP) {
-			fireTableRowsUpdated(newPos, rowId);
+			if (newPos < 0 || newPos >= tracks.size()) {
+				return;
+			}
+			Track tmp = tracks.get(newPos);
+			tracks.set(newPos, tracks.get(rowId));
+			tracks.set(rowId, tmp);
+			if (direction == Direction.UP) {
+				fireTableRowsUpdated(newPos, rowId);
+			} else {
+				fireTableRowsUpdated(rowId, newPos);
+			}
 		} else {
-			fireTableRowsUpdated(rowId, newPos);
+			if (direction == Direction.FIRST) {
+				Track tmp = tracks.get(rowId);
+				for (int i = rowId; i > 0; i--) {
+					tracks.set(i, tracks.get(i - 1));
+				}
+				tracks.set(0, tmp);
+				fireTableRowsUpdated(0, rowId);
+			} else {
+				Track tmp = tracks.get(rowId);
+				for (int i = rowId; i < tracks.size() - 1; i++) {
+					tracks.set(i, tracks.get(i + 1));
+				}
+				tracks.set(tracks.size() - 1, tmp);
+				fireTableRowsUpdated(rowId, tracks.size() - 1);
+			}
 		}
 	}
 

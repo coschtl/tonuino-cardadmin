@@ -17,8 +17,8 @@ import com.mpatric.mp3agic.NotSupportedException;
 import com.mpatric.mp3agic.UnsupportedTagException;
 
 public class Track {
-	private final Path path;
 	private final Mp3File mp3File;
+	private final Path path;
 
 	private String album;
 	private String artist;

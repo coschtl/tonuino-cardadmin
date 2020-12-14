@@ -2,8 +2,8 @@ package at.dcosta.tonuino.cardadmin.ui;
 
 import java.awt.BorderLayout;
 import java.awt.Component;
-import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.MouseInfo;
 import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -13,19 +13,17 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Iterator;
+import java.util.List;
 
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
-import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JRootPane;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.SwingWorker;
-import javax.swing.UIManager;
-import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.border.EmptyBorder;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.plaf.DimensionUIResource;
@@ -41,17 +39,20 @@ import at.dcosta.tonuino.cardadmin.Mp3Player;
 import at.dcosta.tonuino.cardadmin.Track;
 import at.dcosta.tonuino.cardadmin.TrackListener;
 import at.dcosta.tonuino.cardadmin.util.FileNames;
+import at.dcosta.tonuino.cardadmin.util.TrackSorter;
 
 public class FilesystemView implements DirectorySelectionListener, TrackListener, ActionListener {
 
 	private static final String CMD_NORMALIZE = "normalize";
 	private static final String CMD_SAVE_ID_TAGS = "saveIdTags";
+	private static final String CMD_PERSIST_TRACK_ORDER = "persistTrackOrder";
 	private JTable trackTable;
 	private JFrame frame;
 	private JScrollPane fileScrollPane;
 	private TrackTableModel trackTableModel;
 	private Mp3Player mp3Player;
 	private JButton writeTags;
+	private JButton persistTrackOrder;
 
 	public FilesystemView() {
 		mp3Player = new Mp3Player();
@@ -61,7 +62,7 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 		JPanel headerPanel = new JPanel();
 		headerPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
 		headerPanel.setLayout(new BorderLayout());
-		JButton newFolder = new JButton("neuer Ordner");
+		JButton newFolder = new JButton("Neuer Ordner");
 		newFolder.addActionListener(new ActionListener() {
 
 			@Override
@@ -136,15 +137,23 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 	private JPanel createFooterButtons() {
 		JPanel footerPanel = new JPanel();
 		footerPanel.setLayout(new FlowLayout());
+
 		JButton normalize = new JButton("Tracks normalisieren");
 		normalize.setActionCommand(CMD_NORMALIZE);
 		normalize.addActionListener(this);
+
+		persistTrackOrder = new JButton("Reihenfolge übernehmen");
+		persistTrackOrder.setActionCommand(CMD_PERSIST_TRACK_ORDER);
+		persistTrackOrder.addActionListener(this);
+		persistTrackOrder.setEnabled(false);
+
 		writeTags = new JButton("ID-Tags speichern");
 		writeTags.setActionCommand(CMD_SAVE_ID_TAGS);
 		writeTags.addActionListener(this);
 		writeTags.setEnabled(false);
 
 		footerPanel.add(normalize);
+		footerPanel.add(persistTrackOrder);
 		footerPanel.add(writeTags);
 		return footerPanel;
 	}
@@ -161,6 +170,7 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 		trackTable.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
+				System.out.println(e.getClickCount());
 				if (mp3Player.isPlaying()) {
 					mp3Player.stop();
 				}
@@ -171,9 +181,11 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 				if (col == 0) {
 					mp3Player.play(track);
 				} else if (col == 6) {
-					trackTableModel.move(row, Direction.UP);
+					persistTrackOrder.setEnabled(true);
+					trackTableModel.move(row, e.getButton() == MouseEvent.BUTTON1 ? Direction.UP : Direction.FIRST);
 				} else if (col == 7) {
-					trackTableModel.move(row, Direction.DOWN);
+					persistTrackOrder.setEnabled(true);
+					trackTableModel.move(row, e.getButton() == MouseEvent.BUTTON1 ? Direction.DOWN : Direction.LAST);
 				}
 			}
 		});
@@ -201,6 +213,8 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 	}
 
 	private void update(File path) throws IOException {
+		persistTrackOrder.setEnabled(false);
+		writeTags.setEnabled(false);
 		WaitDialog wait = new WaitDialog();
 		frame.pack();
 		SwingWorker<Void, Void> worker = new SwingWorker<>() {
@@ -254,7 +268,6 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 	@Override
 	public void pathSelected(File path) {
 		try {
-			writeTags.setEnabled(false);
 			update(path);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -269,16 +282,21 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
+		final List<Track> tracks = trackTableModel.getTracks();
+		if (tracks.isEmpty()) {
+			return;
+		}
 		if (e.getActionCommand() == CMD_SAVE_ID_TAGS) {
 			writeTags.setEnabled(false);
 			WaitDialog wait = new WaitDialog();
 			SwingWorker<Void, Void> worker = new SwingWorker<>() {
 				@Override
 				protected Void doInBackground() throws Exception {
-					trackTableModel.getTracks().forEach(t -> {
+					tracks.forEach(t -> {
 						try {
 							t.save();
-						} catch (UnsupportedTagException | InvalidDataException | NotSupportedException | IOException e1) {
+						} catch (UnsupportedTagException | InvalidDataException | NotSupportedException
+								| IOException e1) {
 							// TODO Auto-generated catch block
 							e1.printStackTrace();
 						}
@@ -286,13 +304,35 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 					return null;
 				}
 
-				protected void done() {					
+				protected void done() {
 					wait.close();
 				}
 
 			};
 			worker.execute();
 			wait.makeWait("Bitte warten", "Die ID-Tags werden gespeichert...", frame);
+		} else if (e.getActionCommand() == CMD_PERSIST_TRACK_ORDER) {
+			persistTrackOrder.setEnabled(false);
+			WaitDialog wait = new WaitDialog();
+			SwingWorker<Void, Void> worker = new SwingWorker<>() {
+				@Override
+				protected Void doInBackground() throws Exception {
+					TrackSorter.correctFilenames(tracks);
+					return null;
+				}
+
+				protected void done() {
+					wait.close();
+				}
+			};
+			worker.execute();
+			wait.makeWait("Bitte warten", "Die Dateien werden umsortiert...", frame);
+			try {
+				update(tracks.get(0).getPath().getParent().toFile());
+			} catch (IOException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
 		}
 	}
 
