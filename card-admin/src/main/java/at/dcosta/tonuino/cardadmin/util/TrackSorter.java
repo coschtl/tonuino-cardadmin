@@ -5,6 +5,7 @@ import java.lang.System.Logger;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -43,6 +44,16 @@ public class TrackSorter {
 				LogUtil.debug(LOGGER, "rename2: ", e.getKey(), " -> ", e.getValue());
 			} catch (IOException ex) {
 				errorDisplay.showError("Can not rename tracks", ex);
+			}
+		});
+	}
+	
+	public static void sortByFilename(List<Track> tracks) {
+		tracks.sort(new Comparator<Track>() {
+
+			@Override
+			public int compare(Track t1, Track t2) {
+				return t1.getPath().toString().compareTo(t2.getPath().toString());
 			}
 		});
 	}

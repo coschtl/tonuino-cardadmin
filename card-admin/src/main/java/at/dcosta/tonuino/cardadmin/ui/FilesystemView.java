@@ -44,6 +44,7 @@ import at.dcosta.tonuino.cardadmin.Mp3Player;
 import at.dcosta.tonuino.cardadmin.Track;
 import at.dcosta.tonuino.cardadmin.TrackListener;
 import at.dcosta.tonuino.cardadmin.ui.ModalDialog.Duration;
+import at.dcosta.tonuino.cardadmin.util.CardFilesystemUtil;
 import at.dcosta.tonuino.cardadmin.util.Configuration;
 import at.dcosta.tonuino.cardadmin.util.ExceptionUtil;
 import at.dcosta.tonuino.cardadmin.util.FileNames;
@@ -152,8 +153,51 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 				}
 			}
 		});
+		
+		JButton correct = new JButton("Filesystem korrigieren");
+		correct.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				
+					ModalDialog wait = new ModalDialog();
+					SwingWorker<Void, Void> worker = new SwingWorker<>() {
+						@Override
+						protected Void doInBackground() throws Exception {
+							List<Track> tracks = trackTableModel.getTracks();
+							if (!tracks.isEmpty()) {
+								File f = tracks.get(0).getPath().toFile();
+								Path altRootPath = Path.of(Configuration.getInstance().getAlternativeCardRoot());
+								while(f.getParentFile() != null) {
+									f = f.getParentFile();
+									if (f.toPath().equals(altRootPath)) {
+										break;
+									}
+								}
+								System.out.println("----");
+								System.out.println(CardFilesystemUtil.analyzeRoot(f.toPath()));
+								System.out.println("----");
+								System.out.println(CardFilesystemUtil.correctFolders(f.toPath(), true));
+								System.out.println("----");
+							}
+							
+							return null;
+						}
+
+						protected void done() {
+							wait.close();
+						}
+
+					};
+					worker.execute();
+					wait.showWait("Bitte warten", "Das Filesystem wird korrigiert...", frame);
+				}
+			
+		});
+
 
 		headerPanel.add(newFolder, BorderLayout.LINE_START);
+		headerPanel.add(correct, BorderLayout.CENTER);
 		headerPanel.add(addFiles, BorderLayout.LINE_END);
 		return headerPanel;
 	}
@@ -194,6 +238,7 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 		JPanel filesPanel = new JPanel();
 		filesPanel.setLayout(new BoxLayout(filesPanel, BoxLayout.Y_AXIS));
 		trackTable = new JTable(trackTableModel);
+		trackTable.setGridColor(Color.LIGHT_GRAY);
 		trackTable.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {

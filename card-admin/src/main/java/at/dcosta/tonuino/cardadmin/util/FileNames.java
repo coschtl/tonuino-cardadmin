@@ -5,16 +5,25 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public final class FileNames {
 	public static final String SUFFIX_MP3 = ".mp3";
 	
-	private static final Pattern PATTERN_DIR = Pattern.compile("^\\d\\d$");
-	private static final Pattern PATTERN_FILE = Pattern.compile("^\\d\\d\\d.mp3$", Pattern.CASE_INSENSITIVE);
+	public static final Pattern PATTERN_DIR = Pattern.compile("^((0[1-9])|([1-9]\\d))$");
+	public static final Pattern PATTERN_FILE = Pattern.compile("^((00[1-9])|([1-9]\\d\\d)|(\\d[1-9]\\d)).mp3$", Pattern.CASE_INSENSITIVE);
+	public static final Set<String> SYSTEM_FOLDERS;
+	
+	static {
+		SYSTEM_FOLDERS = new HashSet<>();
+		SYSTEM_FOLDERS.add("advert");
+		SYSTEM_FOLDERS.add("mp3");
+	}
 
 	public static String getNextFolderName(File parentFolder) throws IOException {
 		return getNextNumber(parentFolder, 100, PATTERN_DIR);

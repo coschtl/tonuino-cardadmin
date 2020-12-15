@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -18,6 +17,7 @@ import com.mpatric.mp3agic.UnsupportedTagException;
 import at.dcosta.tonuino.cardadmin.Track;
 import at.dcosta.tonuino.cardadmin.TrackListener;
 import at.dcosta.tonuino.cardadmin.util.FileNames;
+import at.dcosta.tonuino.cardadmin.util.TrackSorter;
 
 public class TrackTableModel extends AbstractTableModel {
 
@@ -58,7 +58,8 @@ public class TrackTableModel extends AbstractTableModel {
 
 	public void update(File folder, TrackListener trackListener) throws IOException {
 		this.tracks = Files.list(folder.toPath())
-				.filter(file -> file.getFileName().toString().toLowerCase().endsWith(FileNames.SUFFIX_MP3)).map(file -> {
+				.filter(file -> file.getFileName().toString().toLowerCase().endsWith(FileNames.SUFFIX_MP3))
+				.map(file -> {
 					try {
 						return new Track(file).setTrackListener(trackListener);
 					} catch (UnsupportedTagException | InvalidDataException | IOException e) {
@@ -66,29 +67,24 @@ public class TrackTableModel extends AbstractTableModel {
 						return null;
 					}
 				}).filter(track -> track != null).collect(Collectors.toList());
-		this.tracks.sort(new Comparator<Track>() {
-
-			@Override
-			public int compare(Track t1, Track t2) {
-				return t1.getPath().toString().compareTo(t2.getPath().toString());
-			}
-		});
+		TrackSorter.sortByFilename(this.tracks);
 		fireTableDataChanged();
 	}
 
 	@SuppressWarnings("serial")
 	private void createHeader() {
-		header.add(new TableHeader("", new ValueResolver<Void>() {
-			private static final long serialVersionUID = 1L;
-
-			@Override
-			public Void getValue(Track track) {
-				return null;
-			}
-
-			public void setValue(Void value, Track track) {
-			};
-		}));
+//		header.add(new TableHeader("", new ValueResolver<Void>() {
+//			private static final long serialVersionUID = 1L;
+//
+//			@Override
+//			public Void getValue(Track track) {
+//				return null;
+//			}
+//
+//			public void setValue(Void value, Track track) {
+//			};
+//		}));
+		header.add(EMPTY_HEADER);
 		header.add(new TableHeader("File", new ValueResolver<Path>() {
 			@Override
 			public Path getValue(Track track) {
@@ -138,28 +134,30 @@ public class TrackTableModel extends AbstractTableModel {
 				track.setTrackNumber(value);
 			};
 		}));
-		header.add(new TableHeader("", new ValueResolver<Void>() {
-			private static final long serialVersionUID = 1L;
-
-			@Override
-			public Void getValue(Track track) {
-				return null;
-			}
-
-			public void setValue(Void value, Track track) {
-			};
-		}));
-		header.add(new TableHeader("", new ValueResolver<Void>() {
-			private static final long serialVersionUID = 1L;
-
-			@Override
-			public Void getValue(Track track) {
-				return null;
-			}
-
-			public void setValue(Void value, Track track) {
-			};
-		}));
+		header.add(EMPTY_HEADER);
+		header.add(EMPTY_HEADER);
+//		header.add(new TableHeader("", new ValueResolver<Void>() {
+//			private static final long serialVersionUID = 1L;
+//
+//			@Override
+//			public Void getValue(Track track) {
+//				return null;
+//			}
+//
+//			public void setValue(Void value, Track track) {
+//			};
+//		}));
+//		header.add(new TableHeader("", new ValueResolver<Void>() {
+//			private static final long serialVersionUID = 1L;
+//
+//			@Override
+//			public Void getValue(Track track) {
+//				return null;
+//			}
+//
+//			public void setValue(Void value, Track track) {
+//			};
+//		}));
 	}
 
 	@Override
