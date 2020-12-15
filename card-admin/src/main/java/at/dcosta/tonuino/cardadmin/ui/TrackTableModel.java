@@ -52,6 +52,7 @@ public class TrackTableModel extends AbstractTableModel {
 	public TrackTableModel(ErrorDisplay errorDisplay) {
 		this.header = new ArrayList<>();
 		this.errorDisplay = errorDisplay;
+		this.tracks = new ArrayList<Track>();
 		createHeader();
 	}
 
@@ -168,7 +169,7 @@ public class TrackTableModel extends AbstractTableModel {
 
 	@Override
 	public int getRowCount() {
-		return tracks == null ? 0 : tracks.size();
+		return tracks.size();
 	}
 
 	@Override
@@ -233,7 +234,6 @@ public class TrackTableModel extends AbstractTableModel {
 	}
 
 	public void move(int rowId, Direction direction) {
-		System.out.println("MOVE: " + rowId + " " + direction);
 		if (direction == Direction.UP || direction == Direction.DOWN) {
 			int newPos = rowId + (direction == Direction.UP ? -1 : 1);
 

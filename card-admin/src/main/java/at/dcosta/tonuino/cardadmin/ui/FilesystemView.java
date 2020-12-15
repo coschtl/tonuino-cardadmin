@@ -43,8 +43,11 @@ import com.mpatric.mp3agic.UnsupportedTagException;
 import at.dcosta.tonuino.cardadmin.Mp3Player;
 import at.dcosta.tonuino.cardadmin.Track;
 import at.dcosta.tonuino.cardadmin.TrackListener;
+import at.dcosta.tonuino.cardadmin.ui.ModalDialog.Duration;
+import at.dcosta.tonuino.cardadmin.util.Configuration;
 import at.dcosta.tonuino.cardadmin.util.ExceptionUtil;
 import at.dcosta.tonuino.cardadmin.util.FileNames;
+import at.dcosta.tonuino.cardadmin.util.StreamGobbler;
 import at.dcosta.tonuino.cardadmin.util.TrackSorter;
 
 public class FilesystemView implements DirectorySelectionListener, TrackListener, ActionListener, ErrorDisplay {
@@ -57,19 +60,22 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 	private JScrollPane fileScrollPane;
 	private TrackTableModel trackTableModel;
 	private Mp3Player mp3Player;
+	private JButton normalize;
 	private JButton writeTags;
 	private JButton persistTrackOrder;
 	private JLabel errorSummary;
 	private JTextArea errorDetail;
 	private JPanel error;
+	private File addFilesBaseDir;
 
 	public FilesystemView() {
 		mp3Player = new Mp3Player();
+		addFilesBaseDir = Configuration.getInstance().getDefaultContentRoot();
 	}
 
 	private JPanel createHeaderButtons(FolderTree folderTree) {
 		JPanel headerPanel = new JPanel();
-		headerPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
+		headerPanel.setBorder(new EmptyBorder(10, 5, 5, 5));
 		headerPanel.setLayout(new BorderLayout());
 		JButton newFolder = new JButton("Neuer Ordner");
 		newFolder.addActionListener(new ActionListener() {
@@ -77,7 +83,10 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				File parent = folderTree.getCurrentFolder();
-				if (parent.getParent() != null) {
+				if (parent.getParentFile() != null && !Configuration.getInstance().isAlternativeCardRoot(parent)) {
+					new ModalDialog().makeToast("Achtung",
+							"An dieser Stelle kann kein neues Track-Verzeichnis erstellt werden!", frame,
+							Duration.SHORT);
 					return;
 				}
 				if (folderTree != null) {
@@ -112,21 +121,34 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 						return f.isDirectory() || f.getName().toLowerCase().endsWith(FileNames.SUFFIX_MP3);
 					}
 				});
+				fc.setCurrentDirectory(addFilesBaseDir);
 				fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
 				fc.setMultiSelectionEnabled(true);
 				int returnVal = fc.showOpenDialog(frame);
 
 				if (returnVal == JFileChooser.APPROVE_OPTION) {
-					try {
-						Iterator<String> targetFileNames = FileNames.getNextFileNames(target);
-						for (File file : fc.getSelectedFiles()) {
-							Path source = file.toPath();
-							new Track(source).writeTo(new File(target, targetFileNames.next()).getAbsolutePath());
+					ModalDialog wait = new ModalDialog();
+					SwingWorker<Void, Void> worker = new SwingWorker<>() {
+						@Override
+						protected Void doInBackground() throws Exception {
+							Iterator<String> targetFileNames = FileNames.getNextFileNames(target);
+							for (File file : fc.getSelectedFiles()) {
+								addFilesBaseDir = file.getParentFile();
+								Path source = file.toPath();
+								new Track(source).writeTo(new File(target, targetFileNames.next()).getAbsolutePath(),
+										true);
+							}
+							return null;
 						}
-						update(target);
-					} catch (Exception ex) {
-						showError("Can not add files:", ex);
-					}
+
+						protected void done() {
+							wait.close();
+							update(target);
+						}
+
+					};
+					worker.execute();
+					wait.showWait("Bitte warten", "Die Dateien werden importiert...", frame);
 				}
 			}
 		});
@@ -138,10 +160,13 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 
 	private JPanel createFooterButtons() {
 		JPanel footerPanel = new JPanel();
+		footerPanel.setBorder(new EmptyBorder(10, 5, 0,5));
 		footerPanel.setLayout(new FlowLayout());
 
-		JButton normalize = new JButton("Tracks normalisieren");
+		normalize = new JButton("Tracks normalisieren");
 		normalize.setActionCommand(CMD_NORMALIZE);
+		normalize.setEnabled(Configuration.getInstance().hasNormalizer());
+		normalize.setEnabled(false);
 		normalize.addActionListener(this);
 
 		persistTrackOrder = new JButton("Reihenfolge übernehmen");
@@ -172,7 +197,6 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 		trackTable.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
-				System.out.println(e.getClickCount());
 				if (mp3Player.isPlaying()) {
 					mp3Player.stop();
 				}
@@ -246,7 +270,7 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 	private void update(File path) {
 		persistTrackOrder.setEnabled(false);
 		writeTags.setEnabled(false);
-		WaitDialog wait = new WaitDialog();
+		ModalDialog wait = new ModalDialog();
 		frame.pack();
 		SwingWorker<Void, Void> worker = new SwingWorker<>() {
 			@Override
@@ -282,18 +306,19 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 					totalWidth += width;
 				}
 				frame.pack();
-				fileScrollPane.setPreferredSize(new DimensionUIResource(totalWidth + 20, 400));
-				error.setPreferredSize(new DimensionUIResource(totalWidth + 20, 100));
+				fileScrollPane.setPreferredSize(new DimensionUIResource(totalWidth, 400));
+				error.setPreferredSize(new DimensionUIResource(totalWidth, 100));
 				return null;
 			}
 
 			protected void done() {
 				wait.close();
+				normalize.setEnabled(!trackTableModel.getTracks().isEmpty());
 			}
 
 		};
 		worker.execute();
-		wait.makeWait("Bitte warten", "Das Verzeichnis wird gelesen...", frame);
+		wait.showWait("Bitte warten", "Das Verzeichnis wird gelesen...", frame);
 		frame.pack();
 	}
 
@@ -309,14 +334,13 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		showError("Ein Fehler:", new RuntimeException());
 		final List<Track> tracks = trackTableModel.getTracks();
-		if (tracks == null || tracks.isEmpty()) {
+		if (tracks.isEmpty()) {
 			return;
 		}
 		if (e.getActionCommand() == CMD_SAVE_ID_TAGS) {
 			writeTags.setEnabled(false);
-			WaitDialog wait = new WaitDialog();
+			ModalDialog wait = new ModalDialog();
 			SwingWorker<Void, Void> worker = new SwingWorker<>() {
 				@Override
 				protected Void doInBackground() throws Exception {
@@ -337,10 +361,10 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 
 			};
 			worker.execute();
-			wait.makeWait("Bitte warten", "Die ID-Tags werden gespeichert...", frame);
+			wait.showWait("Bitte warten", "Die ID-Tags werden gespeichert...", frame);
 		} else if (e.getActionCommand() == CMD_PERSIST_TRACK_ORDER) {
 			persistTrackOrder.setEnabled(false);
-			WaitDialog wait = new WaitDialog();
+			ModalDialog wait = new ModalDialog();
 			SwingWorker<Void, Void> worker = new SwingWorker<>() {
 				@Override
 				protected Void doInBackground() throws Exception {
@@ -353,8 +377,58 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 				}
 			};
 			worker.execute();
-			wait.makeWait("Bitte warten", "Die Dateien werden umsortiert...", frame);
+			wait.showWait("Bitte warten", "Die Dateien werden umsortiert...", frame);
 			update(tracks.get(0).getPath().getParent().toFile());
+		} else if (e.getActionCommand() == CMD_NORMALIZE) {
+			List<String> command = Configuration.getInstance().getNormalizerCommand();
+			for (Track track : trackTableModel.getTracks()) {
+				command.add(track.getPath().toString());
+			}
+			
+			ModalDialog dialog = new ModalDialog();
+			SwingWorker<Void, Void> worker = new SwingWorker<>() {
+				@Override
+				protected Void doInBackground() throws Exception {
+					ProcessBuilder builder = new ProcessBuilder();
+					builder.command(command);
+						try {
+						Process process = builder.start();
+						StreamGobbler in = new StreamGobbler(process.getInputStream());
+						StreamGobbler err = new StreamGobbler(process.getErrorStream()).setUpdateableDialog(dialog);
+						SwingWorker<Void, Void> worker2 = new SwingWorker<>() {
+							@Override
+							protected Void doInBackground() throws Exception {
+								in.run();
+								return null;
+							}
+						};
+						SwingWorker<Void, Void> worker3 = new SwingWorker<>() {
+							@Override
+							protected Void doInBackground() throws Exception {
+								err.run();
+								return null;
+							}
+						};
+						worker2.execute();
+						worker3.execute();
+						try {
+							process.waitFor();
+						} catch (InterruptedException e) {
+							//ignore
+						}
+					} catch (Exception ex) {
+						showError("Error normalizing tracks", ex);
+					}
+					return null;
+				}
+				
+				protected void done() {
+					dialog.close();
+					normalize.setEnabled(false);
+				}
+			};
+			worker.execute();
+			dialog.showWait("Die Dateien werden normalisiert", "Bitte warten...", frame);
 		}
 	}
 

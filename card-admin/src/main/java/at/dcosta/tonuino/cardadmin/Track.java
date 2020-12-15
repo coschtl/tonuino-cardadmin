@@ -117,9 +117,9 @@ public class Track {
 		tag.setTrack(Integer.toString(trackNumber));
 	}
 
-	public void writeTo(String path)
+	public void writeTo(String path, boolean forceWrite)
 			throws UnsupportedTagException, InvalidDataException, IOException, NotSupportedException {
-		if (!isModified()) {
+		if (!isModified() && !forceWrite) {
 			return;
 		}
 		if (tag instanceof ID3v2) {
@@ -135,7 +135,7 @@ public class Track {
 			return;
 		}
 		Path tmp = File.createTempFile(getPath().getFileName().toString(), ".tmp").toPath();
-		writeTo(tmp.toString());
+		writeTo(tmp.toString(),false);
 		Files.move(tmp, getPath(), StandardCopyOption.REPLACE_EXISTING);
 	}
 

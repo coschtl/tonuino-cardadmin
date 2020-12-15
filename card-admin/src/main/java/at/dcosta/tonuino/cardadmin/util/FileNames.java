@@ -28,13 +28,14 @@ public final class FileNames {
 		List<Path> files = Files.list(parentFolder.toPath())
 				.filter(path -> pattern.matcher(path.getFileName().toString()).matches()).sorted()
 				.collect(Collectors.toList());
+		int highestExisting;
 		if (files.size() > 0) {
 			String lastFileName = files.get(files.size() - 1).getFileName().toString();
-			Integer max = Integer.parseInt(lastFileName.substring(0, Integer.toString(toAdd).length() -1));
-			return Integer.toString(toAdd + 1 + max).substring(1);
+			highestExisting = Integer.parseInt(lastFileName.substring(0, Integer.toString(toAdd).length() -1));
 		} else {
-			return Integer.toString(toAdd).substring(1);
+			highestExisting = 0;
 		}
+		return Integer.toString(toAdd + 1 + highestExisting).substring(1);
 	}
 	
 	public static Iterator<Path> createNewFileNameSeries(Path parent)  {
