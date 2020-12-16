@@ -35,6 +35,7 @@ public class ModalDialog implements UpdateableDialog {
 
 	private JDialog dialog;
 	private JLabel msgLabel;
+	private boolean disposed;
 
 	public void showWait(String title, String message, Component parent) {
 		show(title, message, parent, true);
@@ -82,7 +83,10 @@ public class ModalDialog implements UpdateableDialog {
 	}
 
 	public void close() {
-		dialog.dispose();
+		if (!disposed) {
+			disposed = true;
+			dialog.dispose();
+		}
 	}
 
 	@Override

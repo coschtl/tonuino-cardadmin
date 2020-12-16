@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 public class CardFilesystemUtil {
 
@@ -62,7 +63,7 @@ public class CardFilesystemUtil {
 	private static final Logger LOGGER = System.getLogger(TrackSorter.class.getName());
 
 	public static Map<Path, RequiredAction> analyzeRoot(Path root) throws IOException {
-		Map<Path, RequiredAction> changes = new HashMap<>();
+		Map<Path, RequiredAction> changes = new TreeMap<>();
 		Files.list(root).forEach(path -> {
 			String filename = path.getFileName().toString();
 			if (!SYSTEM_FOLDERS.contains(filename) && !PATTERN_DIR.matcher(filename).matches()) {
@@ -79,8 +80,8 @@ public class CardFilesystemUtil {
 		return changes;
 	}
 
-	public static List<String> correctFolders(Path root, boolean simulate) throws IOException {
-		List<String> changes = new ArrayList<>();
+	public static Map<Path, RequiredAction> correctFolders(Path root, boolean simulate) throws IOException {
+		Map<Path, RequiredAction> changes = new TreeMap<>();
 		Files.list(root).forEach(folder -> {
 			if (PATTERN_DIR.matcher(folder.getFileName().toString()).matches()) {
 				try {
@@ -92,8 +93,32 @@ public class CardFilesystemUtil {
 		});
 		return changes;
 	}
+	
+	public static String toGermanText(Map<Path, RequiredAction> changes) {
+		StringBuilder b = new StringBuilder();
+		changes.entrySet().forEach(e -> {
+			b.append(e.getKey());
+			RequiredAction action = e.getValue();
+			switch (action.getAction()) {
+			case ADD:
+				b.append( " fehlt\n");
+				break;
+			case DELETE:
+				b.append( " muss gelöscht werden\n");
+				break;
+			case RENAME:
+				b.append( " muss");
+				if (action.getAdditionalInfo() != null) {
+					b.append(" nach ").append(action.getAdditionalInfo());
+				}
+				b.append(" umbenannt werden\n");
+				break;
+			}
+		});
+		return b.toString();
+	}
 
-	private static void correctFolder(Path folder, List<String> changes, boolean simulate) throws IOException {
+	private static void correctFolder(Path folder, Map<Path, RequiredAction> changes, boolean simulate) throws IOException {
 		List<Path> tracks = new ArrayList<>();
 		Files.list(folder).forEach(filePath -> {
 			File file = filePath.toFile();
@@ -101,14 +126,14 @@ public class CardFilesystemUtil {
 				if (!simulate) {
 					file.delete();
 				}
-				changes.add("deleted: " + filePath);
+				changes.put( filePath, RequiredAction.DELETE);
 			} else {
 				String filename = filePath.getFileName().toString();
 				if (!PATTERN_FILE.matcher(filename).matches()) {
 					if (!simulate) {
 						file.delete();
 					}
-					changes.add("deleted: " + filePath);
+					changes.put( filePath, RequiredAction.createRenameAction(null));
 				} else {
 					tracks.add(filePath);
 				}
@@ -117,7 +142,7 @@ public class CardFilesystemUtil {
 		correctFilenames(tracks, changes, simulate);
 	}
 
-	private static void correctFilenames(List<Path> paths, List<String> changes, boolean simulate) {
+	private static void correctFilenames(List<Path> paths, Map<Path, RequiredAction> changes, boolean simulate) {
 		if (paths.isEmpty()) {
 			return;
 		}
@@ -132,7 +157,6 @@ public class CardFilesystemUtil {
 					if (!simulate) {
 						Files.move(path, tmpPath);
 					}
-					changes.add("moved: " + path + "\t->\t" + tmpPath);
 				} catch (IOException ex) {
 					throw new RuntimeException(ex);
 				}
@@ -145,7 +169,8 @@ public class CardFilesystemUtil {
 				if (!simulate) {
 					Files.move(e.getKey(), e.getValue());
 				}
-				changes.add("moved: " + e.getKey() + "\t->\t" + e.getValue());
+				String origName = e.getKey().toString();
+				changes.put(  Path.of(origName.substring(0, origName.length()-4)), RequiredAction.createRenameAction(e.getValue().toString()));
 				LogUtil.debug(LOGGER, "rename2: ", e.getKey(), " -> ", e.getValue());
 			} catch (IOException ex) {
 				throw new RuntimeException(ex);
