@@ -48,9 +48,7 @@ public final class FileNames {
 	}
 	
 	public static String toFixedDigitString(int val, int digits) {
-		int i = val + (int) Math.pow(10,  digits);
-		System.out.println(val + "(" + digits + ") -> " + i);
-		return Integer.toString(i).substring(1);
+		return Integer.toString(val + (int) Math.pow(10,  digits)).substring(1);
 	}
 
 	public static String getNextFileNumber(File parentFolder) throws IOException {

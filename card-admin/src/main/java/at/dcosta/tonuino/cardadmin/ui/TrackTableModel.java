@@ -27,11 +27,11 @@ public class TrackTableModel extends AbstractTableModel {
 	private static final int MAX_EDIT_VALUE = 5;
 
 	private static final ImageIcon ICON_PLAY = new ImageIcon(
-			TrackTableModel.class.getClassLoader().getResource("play.png"));
+			TrackTableModel.class.getClassLoader().getResource("images/play.png"));
 	private static final ImageIcon ICON_UP = new ImageIcon(
-			TrackTableModel.class.getClassLoader().getResource("up.png"));
+			TrackTableModel.class.getClassLoader().getResource("images/up.png"));
 	private static final ImageIcon ICON_DOWN = new ImageIcon(
-			TrackTableModel.class.getClassLoader().getResource("down.png"));
+			TrackTableModel.class.getClassLoader().getResource("images/down.png"));
 
 	private static TableHeader EMPTY_HEADER = new TableHeader("", new ValueResolver<Void>() {
 		private static final long serialVersionUID = 1L;

@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.swing.BoxLayout;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -345,6 +346,7 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.pack();
 		frame.setVisible(true);
+		frame.setIconImage(new ImageIcon(TrackTableModel.class.getClassLoader().getResource("images/card-admin.png")).getImage());
 
 		update(null);
 	}
