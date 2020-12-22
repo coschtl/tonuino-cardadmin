@@ -20,7 +20,7 @@ public class Configuration {
 			if (cfgfilePath != null && new File(cfgfilePath).exists()) {
 				in = new FileInputStream(new File(cfgfilePath));
 			} else {
-				getClass().getClassLoader().getResourceAsStream("configuration.properties");
+				in = getClass().getClassLoader().getResourceAsStream("configuration.properties");
 			}
 			props = new Properties();
 			props.load(in);

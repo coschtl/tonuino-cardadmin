@@ -1,7 +1,5 @@
 package at.dcosta.tonuino.cardadmin;
 
-import static at.dcosta.tonuino.cardadmin.util.FileNames.PATTERN_DIR;
-
 import java.awt.Desktop;
 import java.io.File;
 import java.io.IOException;
@@ -17,6 +15,7 @@ import com.mpatric.mp3agic.UnsupportedTagException;
 
 import at.dcosta.tonuino.cardadmin.util.Configuration;
 import at.dcosta.tonuino.cardadmin.util.FileNames;
+import at.dcosta.tonuino.cardadmin.util.FileNames.Type;
 import at.dcosta.tonuino.cardadmin.util.LogUtil;
 import at.dcosta.tonuino.cardadmin.util.TrackSorter;
 
@@ -30,7 +29,7 @@ public class IndexGenerator {
 		PrintStream out= new  PrintStream(indexFile);
 		Files.list(root).forEach(path -> {
 			String filename = path.getFileName().toString();
-			if (PATTERN_DIR.matcher(filename).matches()) {
+			if (Type.FOLDER.getPattern().matcher(filename).matches()) {
 				try {
 					addFolderToIndex(path, out);
 				} catch (IOException e) {

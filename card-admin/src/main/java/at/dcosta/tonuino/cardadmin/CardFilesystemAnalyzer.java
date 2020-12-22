@@ -1,7 +1,5 @@
 package at.dcosta.tonuino.cardadmin;
 
-import static at.dcosta.tonuino.cardadmin.util.FileNames.PATTERN_DIR;
-import static at.dcosta.tonuino.cardadmin.util.FileNames.PATTERN_FILE;
 import static at.dcosta.tonuino.cardadmin.util.FileNames.SYSTEM_FOLDERS;
 
 import java.io.File;
@@ -18,6 +16,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import at.dcosta.tonuino.cardadmin.util.FileNames;
+import at.dcosta.tonuino.cardadmin.util.FileNames.Type;
 import at.dcosta.tonuino.cardadmin.util.LogUtil;
 import at.dcosta.tonuino.cardadmin.util.TrackSorter;
 
@@ -70,8 +69,8 @@ public class CardFilesystemAnalyzer {
 		Map<Path, RequiredAction> changes = new TreeMap<>();
 		Files.list(root).forEach(path -> {
 			String filename = path.getFileName().toString();
-			if (!SYSTEM_FOLDERS.contains(filename) && !PATTERN_DIR.matcher(filename).matches()) {
-				System.out.println(filename + " no match: " + PATTERN_DIR.pattern());
+			if (!SYSTEM_FOLDERS.contains(filename) && !Type.FOLDER.getPattern().matcher(filename).matches()) {
+				System.out.println(filename + " no match: " + Type.FOLDER.getPattern().pattern());
 				changes.put(path, RequiredAction.DELETE);
 			}
 		});
@@ -87,7 +86,7 @@ public class CardFilesystemAnalyzer {
 	public static Map<Path, RequiredAction> correctFolders(Path root, boolean simulate) throws IOException {
 		Map<Path, RequiredAction> changes = new TreeMap<>();
 		Files.list(root).forEach(folder -> {
-			if (PATTERN_DIR.matcher(folder.getFileName().toString()).matches()) {
+			if (Type.FOLDER.getPattern().matcher(folder.getFileName().toString()).matches()) {
 				try {
 					correctFolder(folder, changes, simulate);
 				} catch (IOException e) {
@@ -133,7 +132,7 @@ public class CardFilesystemAnalyzer {
 				changes.put( filePath, RequiredAction.DELETE);
 			} else {
 				String filename = filePath.getFileName().toString();
-				if (!PATTERN_FILE.matcher(filename).matches()) {
+				if (!Type.FILE.getPattern().matcher(filename).matches()) {
 					if (!simulate) {
 						file.delete();
 					}
