@@ -20,7 +20,6 @@ import java.util.Map;
 
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
-import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -43,11 +42,11 @@ import com.mpatric.mp3agic.NotSupportedException;
 import com.mpatric.mp3agic.UnsupportedTagException;
 
 import at.dcosta.tonuino.cardadmin.CardFilesystemAnalyzer;
+import at.dcosta.tonuino.cardadmin.CardFilesystemAnalyzer.RequiredAction;
 import at.dcosta.tonuino.cardadmin.IndexGenerator;
 import at.dcosta.tonuino.cardadmin.Mp3Player;
 import at.dcosta.tonuino.cardadmin.Track;
 import at.dcosta.tonuino.cardadmin.TrackListener;
-import at.dcosta.tonuino.cardadmin.CardFilesystemAnalyzer.RequiredAction;
 import at.dcosta.tonuino.cardadmin.ui.ModalDialog.Duration;
 import at.dcosta.tonuino.cardadmin.util.Configuration;
 import at.dcosta.tonuino.cardadmin.util.ExceptionUtil;
@@ -137,7 +136,7 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 
 				if (returnVal == JFileChooser.APPROVE_OPTION) {
 					ModalDialog wait = new ModalDialog();
-					SwingWorker<Void, Void> worker = new SwingWorker<>() {
+					SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
 						@Override
 						protected Void doInBackground() throws Exception {
 							Iterator<String> targetFileNames = FileNames.getNextFileNames(target);
@@ -177,7 +176,7 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 				}
 
 				ModalDialog wait = new ModalDialog();
-				SwingWorker<Void, Void> worker = new SwingWorker<>() {
+				SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
 					@Override
 					protected Void doInBackground() throws Exception {
 						Map<Path, RequiredAction> changes = CardFilesystemAnalyzer.analyzeRoot(cardRoot);
@@ -218,7 +217,7 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 				}
 
 				ModalDialog wait = new ModalDialog();
-				SwingWorker<Void, Void> worker = new SwingWorker<>() {
+				SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
 					@Override
 					protected Void doInBackground() throws Exception {
 						new IndexGenerator().createIndexfile(cardRoot);
@@ -386,7 +385,7 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 		writeTags.setEnabled(false);
 		ModalDialog wait = new ModalDialog();
 		frame.pack();
-		SwingWorker<Void, Void> worker = new SwingWorker<>() {
+		SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
 			@Override
 			protected Void doInBackground() throws Exception {
 				if (path != null) {
@@ -455,7 +454,7 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 		if (e.getActionCommand() == CMD_SAVE_ID_TAGS) {
 			writeTags.setEnabled(false);
 			ModalDialog wait = new ModalDialog();
-			SwingWorker<Void, Void> worker = new SwingWorker<>() {
+			SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
 				@Override
 				protected Void doInBackground() throws Exception {
 					tracks.forEach(t -> {
@@ -479,7 +478,7 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 		} else if (e.getActionCommand() == CMD_PERSIST_TRACK_ORDER) {
 			persistTrackOrder.setEnabled(false);
 			ModalDialog wait = new ModalDialog();
-			SwingWorker<Void, Void> worker = new SwingWorker<>() {
+			SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
 				@Override
 				protected Void doInBackground() throws Exception {
 					TrackSorter.correctFilenames(tracks, FilesystemView.this);
@@ -500,7 +499,7 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 			}
 
 			ModalDialog dialog = new ModalDialog();
-			SwingWorker<Void, Void> worker = new SwingWorker<>() {
+			SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
 				@Override
 				protected Void doInBackground() throws Exception {
 					ProcessBuilder builder = new ProcessBuilder();
@@ -509,14 +508,14 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 						Process process = builder.start();
 						StreamGobbler in = new StreamGobbler(process.getInputStream());
 						StreamGobbler err = new StreamGobbler(process.getErrorStream()).setUpdateableDialog(dialog);
-						SwingWorker<Void, Void> worker2 = new SwingWorker<>() {
+						SwingWorker<Void, Void> worker2 = new SwingWorker<Void, Void>() {
 							@Override
 							protected Void doInBackground() throws Exception {
 								in.run();
 								return null;
 							}
 						};
-						SwingWorker<Void, Void> worker3 = new SwingWorker<>() {
+						SwingWorker<Void, Void> worker3 = new SwingWorker<Void, Void>() {
 							@Override
 							protected Void doInBackground() throws Exception {
 								err.run();

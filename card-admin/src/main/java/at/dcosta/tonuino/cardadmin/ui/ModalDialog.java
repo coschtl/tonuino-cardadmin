@@ -46,7 +46,7 @@ public class ModalDialog implements UpdateableDialog {
 	}
 
 	public void makeToast(String title, String message, Component parent, Duration duration) {
-		SwingWorker<Void, Void> worker = new SwingWorker<>() {
+		SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
 
 			@Override
 			protected Void doInBackground() throws Exception {

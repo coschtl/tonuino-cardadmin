@@ -5,7 +5,6 @@ import static at.dcosta.tonuino.cardadmin.util.FileNames.PATTERN_DIR;
 import java.awt.Desktop;
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.PrintStream;
 import java.lang.System.Logger;
 import java.nio.file.Files;
