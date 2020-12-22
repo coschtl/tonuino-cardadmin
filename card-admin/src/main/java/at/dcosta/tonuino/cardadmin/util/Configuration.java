@@ -38,6 +38,10 @@ public class Configuration {
 		return props.getProperty("mp3.normalizing.commandline");
 	}
 	
+	public  String getCardIndexLocation() {
+		return props.getProperty("card-index.location");
+	}
+	
 	public List<String> getNormalizerCommand() {
 		List<String> cmd = new ArrayList<>();
 		cmd.add(getNormalizer());

@@ -1,4 +1,4 @@
-package at.dcosta.tonuino.cardadmin.util;
+package at.dcosta.tonuino.cardadmin;
 
 import static at.dcosta.tonuino.cardadmin.util.FileNames.PATTERN_DIR;
 import static at.dcosta.tonuino.cardadmin.util.FileNames.PATTERN_FILE;
@@ -17,7 +17,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-public class CardFilesystemUtil {
+import at.dcosta.tonuino.cardadmin.util.FileNames;
+import at.dcosta.tonuino.cardadmin.util.LogUtil;
+import at.dcosta.tonuino.cardadmin.util.TrackSorter;
+
+public class CardFilesystemAnalyzer {
 
 	public static class RequiredAction {
 		public enum Action {

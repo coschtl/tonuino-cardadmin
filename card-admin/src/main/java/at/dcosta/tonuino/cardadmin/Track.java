@@ -31,10 +31,10 @@ public class Track {
 		this.path = path;
 		this.mp3File = new Mp3File(path);
 
-		if (mp3File.hasId3v1Tag()) {
-			tag = mp3File.getId3v1Tag();
-		} else if (mp3File.hasId3v2Tag()) {
+		if (mp3File.hasId3v2Tag()) {
 			tag = mp3File.getId3v2Tag();
+		} else if (mp3File.hasId3v1Tag()) {
+			tag = mp3File.getId3v1Tag();
 		}
 		if (tag != null) {
 			album = tag.getAlbum();

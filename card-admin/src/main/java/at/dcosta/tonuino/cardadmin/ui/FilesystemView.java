@@ -42,12 +42,13 @@ import com.mpatric.mp3agic.InvalidDataException;
 import com.mpatric.mp3agic.NotSupportedException;
 import com.mpatric.mp3agic.UnsupportedTagException;
 
+import at.dcosta.tonuino.cardadmin.CardFilesystemAnalyzer;
+import at.dcosta.tonuino.cardadmin.IndexGenerator;
 import at.dcosta.tonuino.cardadmin.Mp3Player;
 import at.dcosta.tonuino.cardadmin.Track;
 import at.dcosta.tonuino.cardadmin.TrackListener;
+import at.dcosta.tonuino.cardadmin.CardFilesystemAnalyzer.RequiredAction;
 import at.dcosta.tonuino.cardadmin.ui.ModalDialog.Duration;
-import at.dcosta.tonuino.cardadmin.util.CardFilesystemUtil;
-import at.dcosta.tonuino.cardadmin.util.CardFilesystemUtil.RequiredAction;
 import at.dcosta.tonuino.cardadmin.util.Configuration;
 import at.dcosta.tonuino.cardadmin.util.ExceptionUtil;
 import at.dcosta.tonuino.cardadmin.util.FileNames;
@@ -72,7 +73,9 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 	private JPanel error;
 	private File addFilesBaseDir;
 	private File currentPath;
-	private JButton correct;
+	private Path cardRoot;
+	private JButton analyzeCardFilesystem;
+	private JButton createCardIndex;
 
 	public FilesystemView() {
 		mp3Player = new Mp3Player();
@@ -160,16 +163,16 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 		});
 
 		JPanel p = new JPanel();
-		p.setLayout(new FlowLayout(FlowLayout.CENTER,0,0));
-		correct = new JButton("Filesystem korrigieren");
-		correct.setBorder(new EmptyBorder(new Insets(5,5,5,5)));
-		correct.setEnabled(false);
-		p.add(correct);
-		correct.addActionListener(new ActionListener() {
+		p.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 0));
+		analyzeCardFilesystem = new JButton("SD-Karte analysieren");
+		analyzeCardFilesystem.setBorder(new EmptyBorder(new Insets(5, 5, 5, 5)));
+		analyzeCardFilesystem.setEnabled(false);
+		p.add(analyzeCardFilesystem);
+		analyzeCardFilesystem.addActionListener(new ActionListener() {
 
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				if (currentPath == null) {
+				if (!cardFilesystemSelected()) {
 					return;
 				}
 
@@ -177,23 +180,17 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 				SwingWorker<Void, Void> worker = new SwingWorker<>() {
 					@Override
 					protected Void doInBackground() throws Exception {
-						File f = currentPath;
-						Path altRootPath = Path.of(Configuration.getInstance().getAlternativeCardRoot());
-						while (f.getParentFile() != null) {
-							if (f.toPath().equals(altRootPath)) {
-								break;
-							}
-							f = f.getParentFile();
-						}
-						Map<Path, RequiredAction> changes = CardFilesystemUtil.analyzeRoot(f.toPath());
-						changes.putAll(CardFilesystemUtil.correctFolders(f.toPath(), true));
-						if (!changes.isEmpty()) {
-							StringBuilder b = new StringBuilder();
+						Map<Path, RequiredAction> changes = CardFilesystemAnalyzer.analyzeRoot(cardRoot);
+						changes.putAll(CardFilesystemAnalyzer.correctFolders(cardRoot, true));
+						StringBuilder b = new StringBuilder();
+						if (changes.isEmpty()) {
+							b.append("Es sind keine Änderungen an der SD-Karte nötig!");
+						} else {
 							b.append("Folgende Änderungen an der SD-Karte sind nötig:\n\n");
-							b.append(CardFilesystemUtil.toGermanText(changes));
-							wait.close();
-							new MultilineTextDialog().show("Analyse-Ergebnis", b.toString(), frame);
+							b.append(CardFilesystemAnalyzer.toGermanText(changes));
 						}
+						wait.close();
+						new MultilineTextDialog().show("Analyse-Ergebnis", b.toString(), frame);
 						return null;
 					}
 
@@ -208,10 +205,68 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 
 		});
 
+		createCardIndex = new JButton("SD-Karten-Index generieren");
+		createCardIndex.setBorder(new EmptyBorder(new Insets(5, 5, 5, 5)));
+		createCardIndex.setEnabled(false);
+		p.add(createCardIndex);
+		createCardIndex.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if (!cardFilesystemSelected()) {
+					return;
+				}
+
+				ModalDialog wait = new ModalDialog();
+				SwingWorker<Void, Void> worker = new SwingWorker<>() {
+					@Override
+					protected Void doInBackground() throws Exception {
+						new IndexGenerator().createIndexfile(cardRoot);
+						return null;
+					}
+
+					protected void done() {
+						wait.close();
+					}
+
+				};
+				worker.execute();
+				wait.showWait("Bitte warten", "Der Index wird generiert...", frame);
+			}
+
+		});
+
 		headerPanel.add(newFolder, BorderLayout.LINE_START);
 		headerPanel.add(p, BorderLayout.CENTER);
 		headerPanel.add(addFiles, BorderLayout.LINE_END);
 		return headerPanel;
+	}
+
+	private boolean cardFilesystemSelected() {
+		return cardRoot != null;
+	}
+
+	private void updateCardRoot() {
+		analyzeCardFilesystem.setEnabled(false);
+		createCardIndex.setEnabled(false);
+		if (currentPath == null) {
+			cardRoot = null;
+		}
+		File f = currentPath;
+		Path altRootPath = Path.of(Configuration.getInstance().getAlternativeCardRoot());
+		while (f != null && f.getParentFile() != null) {
+			if (f.toPath().equals(altRootPath)) {
+				break;
+			}
+			f = f.getParentFile();
+		}
+		if (f == null) {
+			cardRoot = null;
+			return;
+		}
+		analyzeCardFilesystem.setEnabled(true);
+		createCardIndex.setEnabled(true);
+		cardRoot = f.toPath();
 	}
 
 	private JPanel createFooterButtons() {
@@ -326,7 +381,7 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 
 	private void update(File path) {
 		currentPath = path;
-		correct.setEnabled(path != null);
+		updateCardRoot();
 		persistTrackOrder.setEnabled(false);
 		writeTags.setEnabled(false);
 		ModalDialog wait = new ModalDialog();

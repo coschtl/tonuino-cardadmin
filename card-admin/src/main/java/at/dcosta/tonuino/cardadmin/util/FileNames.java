@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -27,6 +29,28 @@ public final class FileNames {
 
 	public static String getNextFolderName(File parentFolder) throws IOException {
 		return getNextNumber(parentFolder, 100, PATTERN_DIR);
+	}
+	
+	public static String createDateFileName(String prefix, String suffix) {
+		Calendar cal = Calendar.getInstance();
+		cal.setTime(new Date());
+		StringBuilder b = new StringBuilder(prefix);
+		b.append('_');
+		b.append(toFixedDigitString(cal.get(Calendar.YEAR), 4));
+		b.append(toFixedDigitString(1+ cal.get(Calendar.MONTH), 2));
+		b.append(toFixedDigitString(cal.get(Calendar.DAY_OF_MONTH), 2));
+		b.append('_');
+		b.append(toFixedDigitString(cal.get(Calendar.HOUR_OF_DAY), 2));
+		b.append(toFixedDigitString(cal.get(Calendar.MINUTE), 4));
+		b.append(toFixedDigitString(cal.get(Calendar.SECOND), 4));
+		b.append(suffix);
+		return b.toString();
+	}
+	
+	public static String toFixedDigitString(int val, int digits) {
+		int i = val + (int) Math.pow(10,  digits);
+		System.out.println(val + "(" + digits + ") -> " + i);
+		return Integer.toString(i).substring(1);
 	}
 
 	public static String getNextFileNumber(File parentFolder) throws IOException {
