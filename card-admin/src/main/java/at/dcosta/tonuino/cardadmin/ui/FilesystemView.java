@@ -18,6 +18,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import javax.print.attribute.standard.MediaSize.Engineering;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
@@ -138,14 +139,21 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 				if (returnVal == JFileChooser.APPROVE_OPTION) {
 					ModalDialog wait = new ModalDialog();
 					SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
+
+						private String errorMessage;
+
 						@Override
 						protected Void doInBackground() throws Exception {
 							Iterator<String> targetFileNames = FileNames.getNextFileNames(target);
 							for (File file : fc.getSelectedFiles()) {
-								addFilesBaseDir = file.getParentFile();
-								Path source = file.toPath();
-								new Track(source).writeTo(new File(target, targetFileNames.next()).getAbsolutePath(),
-										true);
+								try {
+									addFilesBaseDir = file.getParentFile();
+									Path source = file.toPath();
+									new Track(source)
+											.writeTo(new File(target, targetFileNames.next()).getAbsolutePath(), true);
+								} catch (Exception ex) {
+									errorMessage = ex.getMessage();
+								}
 							}
 							return null;
 						}
@@ -153,6 +161,10 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 						protected void done() {
 							wait.close();
 							update(target);
+							if (errorMessage != null) {
+								new ModalDialog().makeToast("Fehler!", errorMessage, frame,
+										Duration.LONG);
+							}
 						}
 
 					};
@@ -346,7 +358,8 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.pack();
 		frame.setVisible(true);
-		frame.setIconImage(new ImageIcon(TrackTableModel.class.getClassLoader().getResource("images/card-admin.png")).getImage());
+		frame.setIconImage(
+				new ImageIcon(TrackTableModel.class.getClassLoader().getResource("images/card-admin.png")).getImage());
 
 		update(null);
 	}

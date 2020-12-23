@@ -97,7 +97,7 @@ public final class FileNames {
 		if (newNumber <= type.getMaxValue()) {
 			return Integer.toString(type.getToAdd() + newNumber).substring(1);
 		}
-		throw new IllegalArgumentException("Too manny files/folders!");
+		throw new IllegalArgumentException("Too many files/folders!");
 	}
 
 	public static Iterator<Path> createNewFileNameSeries(Path parent) {
@@ -115,7 +115,7 @@ public final class FileNames {
 					String fileName = Integer.toString(1000 + i++).substring(1);
 					return Paths.get(parent.toString(), fileName + SUFFIX_MP3);
 				}
-				throw new IllegalArgumentException("Too manny files!");
+				throw new IllegalArgumentException("Too many files!");
 			}
 		};
 	}
@@ -135,7 +135,7 @@ public final class FileNames {
 				if (i <= Type.FILE.getMaxValue()) {
 					return Integer.toString(1000 + i++).substring(1) + SUFFIX_MP3;
 				}
-				throw new IllegalArgumentException("Too manny files!");
+				throw new IllegalArgumentException("Too many files!");
 			}
 		};
 	}
