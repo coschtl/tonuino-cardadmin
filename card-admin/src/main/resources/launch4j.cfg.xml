@@ -2,7 +2,7 @@
 <launch4jConfig>
   <dontWrapJar>false</dontWrapJar>
   <headerType>gui</headerType>
-  <jar>D:\development\data\git\TonUINO\cardadmin\card-admin\target\card-admin-LOCAL-SNAPSHOT.jar</jar>
+  <jar>D:\development\data\git\TonUINO\cardadmin\card-admin\target\card-admin-0.1.0.jar</jar>
   <outfile>C:\Users\Stephan\Desktop\TonuinoCardAdmin.exe</outfile>
   <errTitle></errTitle>
   <cmdLine></cmdLine>
@@ -10,7 +10,7 @@
   <priority>normal</priority>
   <downloadUrl>http://java.com/download</downloadUrl>
   <supportUrl></supportUrl>
-  <stayAlive>false</stayAlive>
+  <stayAlive>true</stayAlive>
   <restartOnCrash>false</restartOnCrash>
   <manifest></manifest>
   <icon>D:\development\data\git\TonUINO\cardadmin\card-admin\src\main\resources\images\card-admin.ico</icon>
@@ -23,5 +23,6 @@
     <jdkPreference>preferJre</jdkPreference>
     <runtimeBits>64/32</runtimeBits>
     <opt>-Denv.cardadminconfigfile=&quot;%cardAdminConfigFile%&quot;</opt>
+    <opt>-Dlaunch4j.exedir=&quot;%EXEDIR%&quot;</opt>
   </jre>
 </launch4jConfig>

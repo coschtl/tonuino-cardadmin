@@ -5,12 +5,14 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
 public class Configuration {
 
+	private static final String CONFIGURATION_PROPERTIES = "configuration.properties";
 	private Properties props;
 
 	private Configuration() {
@@ -20,10 +22,21 @@ public class Configuration {
 			if (cfgfilePath != null && new File(cfgfilePath).exists()) {
 				in = new FileInputStream(new File(cfgfilePath));
 			} else {
-				in = getClass().getClassLoader().getResourceAsStream("configuration.properties");
+				 String exeDir = System.getProperty("launch4j.exedir");
+				 if (exeDir != null) {
+					 File f = new File(exeDir, CONFIGURATION_PROPERTIES);
+					 if (f.exists()) {
+						 in = new FileInputStream(f);
+					 }
+				 }
+				if (in == null) {
+					in = getClass().getClassLoader().getResourceAsStream(CONFIGURATION_PROPERTIES);
+				}
 			}
 			props = new Properties();
-			props.load(in);
+			if (in != null) {
+				props.load(in);
+			}
 		} catch (IOException ex) {
 			ex.printStackTrace();
 		} finally {
@@ -49,6 +62,10 @@ public class Configuration {
 
 	public boolean hasNormalizer() {
 		return getNormalizer() != null;
+	}
+	
+	public boolean hasAlternativeCardRoot() {
+		return getAlternativeCardRoot() != null;
 	}
 
 	private String getNormalizer() {
@@ -87,7 +104,7 @@ public class Configuration {
 		if (alternativeCardRoot == null) {
 			return false;
 		}
-		Path altPath = Path.of(alternativeCardRoot);
+		Path altPath = Paths.get(alternativeCardRoot);
 		Path filePath = f.toPath();
 		return filePath.equals(altPath);
 	}

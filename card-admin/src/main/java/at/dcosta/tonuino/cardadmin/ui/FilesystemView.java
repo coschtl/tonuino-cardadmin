@@ -14,11 +14,11 @@ import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import javax.print.attribute.standard.MediaSize.Engineering;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
@@ -93,9 +93,10 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				File parent = folderTree.getCurrentFolder();
+				
 				if (parent.getParentFile() != null && !Configuration.getInstance().isAlternativeCardRoot(parent)) {
 					new ModalDialog().makeToast("Achtung",
-							"An dieser Stelle kann kein neues Track-Verzeichnis erstellt werden!", frame,
+							"An dieser Stelle kann kein neues Track-Verzeichnis erstellt werden!"  , frame,
 							Duration.SHORT);
 					return;
 				}
@@ -162,8 +163,7 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 							wait.close();
 							update(target);
 							if (errorMessage != null) {
-								new ModalDialog().makeToast("Fehler!", errorMessage, frame,
-										Duration.LONG);
+								new ModalDialog().makeToast("Fehler!", errorMessage, frame, Duration.LONG);
 							}
 						}
 
@@ -265,7 +265,13 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 			cardRoot = null;
 		}
 		File f = currentPath;
-		Path altRootPath = Path.of(Configuration.getInstance().getAlternativeCardRoot());
+		Configuration config = Configuration.getInstance();
+		Path altRootPath;
+		if (config.hasAlternativeCardRoot()) {
+			altRootPath = Paths.get(config.getAlternativeCardRoot());
+		} else {
+			altRootPath = null;
+		}
 		while (f != null && f.getParentFile() != null) {
 			if (f.toPath().equals(altRootPath)) {
 				break;

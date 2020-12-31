@@ -173,7 +173,7 @@ public class CardFilesystemAnalyzer {
 					Files.move(e.getKey(), e.getValue());
 				}
 				String origName = e.getKey().toString();
-				changes.put(  Path.of(origName.substring(0, origName.length()-4)), RequiredAction.createRenameAction(e.getValue().toString()));
+				changes.put(  Paths.get(origName.substring(0, origName.length()-4)), RequiredAction.createRenameAction(e.getValue().toString()));
 				LogUtil.debug(LOGGER, "rename2: ", e.getKey(), " -> ", e.getValue());
 			} catch (IOException ex) {
 				throw new RuntimeException(ex);
