@@ -13,6 +13,7 @@ import java.util.Map;
 
 import at.dcosta.tonuino.cardadmin.Track;
 import at.dcosta.tonuino.cardadmin.ui.ErrorDisplay;
+import at.dcosta.tonuino.cardadmin.ui.ValueResolver;
 
 public class TrackSorter {
 
@@ -47,13 +48,23 @@ public class TrackSorter {
 			}
 		});
 	}
-	
+
 	public static void sortByFilename(List<Track> tracks) {
 		tracks.sort(new Comparator<Track>() {
 
 			@Override
 			public int compare(Track t1, Track t2) {
 				return t1.getPath().toString().compareTo(t2.getPath().toString());
+			}
+		});
+	}
+
+	public static void sort(List<Track> tracks, ValueResolver<?> valueResolver) {
+		tracks.sort(new Comparator<Track>() {
+
+			@Override
+			public int compare(Track t1, Track t2) {
+				return valueResolver.getValue(t1).toString().compareTo(valueResolver.getValue(t2).toString());
 			}
 		});
 	}

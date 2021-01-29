@@ -2,7 +2,7 @@
 <launch4jConfig>
   <dontWrapJar>false</dontWrapJar>
   <headerType>gui</headerType>
-  <jar>D:\development\data\git\TonUINO\cardadmin\card-admin\target\card-admin-0.1.0.jar</jar>
+  <jar>D:\development\data\git\TonUINO\cardadmin\card-admin\target\card-admin-0.2.0.jar</jar>
   <outfile>C:\Users\Stephan\Desktop\TonuinoCardAdmin.exe</outfile>
   <errTitle></errTitle>
   <cmdLine></cmdLine>

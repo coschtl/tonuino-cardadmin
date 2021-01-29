@@ -33,7 +33,7 @@ public class TrackTableModel extends AbstractTableModel {
 	private static final ImageIcon ICON_DOWN = new ImageIcon(
 			TrackTableModel.class.getClassLoader().getResource("images/down.png"));
 
-	private static TableHeader EMPTY_HEADER = new TableHeader("", new ValueResolver<Void>() {
+	private static TableHeader EMPTY_HEADER = new TableHeader("", new ValueAdapter<Void>() {
 		private static final long serialVersionUID = 1L;
 
 		@Override
@@ -73,19 +73,8 @@ public class TrackTableModel extends AbstractTableModel {
 
 	@SuppressWarnings("serial")
 	private void createHeader() {
-//		header.add(new TableHeader("", new ValueResolver<Void>() {
-//			private static final long serialVersionUID = 1L;
-//
-//			@Override
-//			public Void getValue(Track track) {
-//				return null;
-//			}
-//
-//			public void setValue(Void value, Track track) {
-//			};
-//		}));
 		header.add(EMPTY_HEADER);
-		header.add(new TableHeader("File", new ValueResolver<Path>() {
+		header.add(new TableHeader("File", new ValueAdapter<Path>() {
 			@Override
 			public Path getValue(Track track) {
 				return track.getPath().getFileName();
@@ -94,7 +83,7 @@ public class TrackTableModel extends AbstractTableModel {
 			public void setValue(Path value, Track track) {
 			};
 		}));
-		header.add(new TableHeader("Album", new ValueResolver<String>() {
+		header.add(new TableHeader("Album", new ValueAdapter<String>() {
 			@Override
 			public String getValue(Track track) {
 				return track.getAlbum();
@@ -104,7 +93,7 @@ public class TrackTableModel extends AbstractTableModel {
 				track.setAlbum(value);
 			};
 		}));
-		header.add(new TableHeader("Artist", new ValueResolver<String>() {
+		header.add(new TableHeader("Artist", new ValueAdapter<String>() {
 			@Override
 			public String getValue(Track track) {
 				return track.getArtist();
@@ -114,7 +103,7 @@ public class TrackTableModel extends AbstractTableModel {
 				track.setArtist(value);
 			};
 		}));
-		header.add(new TableHeader("Titel", new ValueResolver<String>() {
+		header.add(new TableHeader("Titel", new ValueAdapter<String>() {
 			@Override
 			public String getValue(Track track) {
 				return track.getTitle();
@@ -124,7 +113,7 @@ public class TrackTableModel extends AbstractTableModel {
 				track.setTitle(value);
 			};
 		}));
-		header.add(new TableHeader("Nr.", new ValueResolver<Integer>() {
+		header.add(new TableHeader("Nr.", new ValueAdapter<Integer>() {
 			@Override
 			public Integer getValue(Track track) {
 				return track.getTrackNumber();
@@ -136,28 +125,7 @@ public class TrackTableModel extends AbstractTableModel {
 		}));
 		header.add(EMPTY_HEADER);
 		header.add(EMPTY_HEADER);
-//		header.add(new TableHeader("", new ValueResolver<Void>() {
-//			private static final long serialVersionUID = 1L;
-//
-//			@Override
-//			public Void getValue(Track track) {
-//				return null;
-//			}
-//
-//			public void setValue(Void value, Track track) {
-//			};
-//		}));
-//		header.add(new TableHeader("", new ValueResolver<Void>() {
-//			private static final long serialVersionUID = 1L;
-//
-//			@Override
-//			public Void getValue(Track track) {
-//				return null;
-//			}
-//
-//			public void setValue(Void value, Track track) {
-//			};
-//		}));
+
 	}
 
 	@Override
@@ -190,6 +158,11 @@ public class TrackTableModel extends AbstractTableModel {
 	public Track getTrackAtRow(int row) {
 		return tracks.get(row);
 	}
+	
+	public void sort(int column) {
+		TrackSorter.sort(this.tracks, header.get(column).getValueAdapter());
+		fireTableDataChanged();
+	}
 
 	@Override
 	public Object getValueAt(int rowIndex, int columnIndex) {
@@ -203,8 +176,8 @@ public class TrackTableModel extends AbstractTableModel {
 			return ICON_DOWN;
 		}
 		if (rowIndex < tracks.size() && columnIndex < header.size()) {
-			ValueResolver<?> valueResolver = header.get(columnIndex).getValueResolver();
-			return valueResolver.getValue(tracks.get(rowIndex));
+			ValueAdapter<?> valueAdapter = header.get(columnIndex).getValueAdapter();
+			return valueAdapter.getValue(tracks.get(rowIndex));
 		}
 
 		return null;
@@ -218,11 +191,11 @@ public class TrackTableModel extends AbstractTableModel {
 	@Override
 	public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
 		if (columnIndex == 5) {
-			ValueResolver<Integer> valueResolver = (ValueResolver<Integer>) header.get(columnIndex).getValueResolver();
-			valueResolver.setValue(aValue == null ? null : Integer.valueOf((String) aValue), tracks.get(rowIndex));
+			ValueAdapter<Integer> valueAdapter = (ValueAdapter<Integer>) header.get(columnIndex).getValueAdapter();
+			valueAdapter.setValue(aValue == null ? null : Integer.valueOf((String) aValue), tracks.get(rowIndex));
 		} else {
-			ValueResolver<String> valueResolver = (ValueResolver<String>) header.get(columnIndex).getValueResolver();
-			valueResolver.setValue((String) aValue, tracks.get(rowIndex));
+			ValueAdapter<String> valueAdapter = (ValueAdapter<String>) header.get(columnIndex).getValueAdapter();
+			valueAdapter.setValue((String) aValue, tracks.get(rowIndex));
 		}
 	}
 
@@ -230,6 +203,7 @@ public class TrackTableModel extends AbstractTableModel {
 	public boolean isCellEditable(int rowIndex, int columnIndex) {
 		return columnIndex >= MIN_EDIT_VALUE && columnIndex <= MAX_EDIT_VALUE;
 	}
+	
 
 	public void move(int rowId, Direction direction) {
 		if (direction == Direction.UP || direction == Direction.DOWN) {

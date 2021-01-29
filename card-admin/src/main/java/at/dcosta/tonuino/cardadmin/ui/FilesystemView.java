@@ -93,10 +93,10 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				File parent = folderTree.getCurrentFolder();
-				
+
 				if (parent.getParentFile() != null && !Configuration.getInstance().isAlternativeCardRoot(parent)) {
 					new ModalDialog().makeToast("Achtung",
-							"An dieser Stelle kann kein neues Track-Verzeichnis erstellt werden!"  , frame,
+							"An dieser Stelle kann kein neues Track-Verzeichnis erstellt werden!", frame,
 							Duration.SHORT);
 					return;
 				}
@@ -141,7 +141,8 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 					ModalDialog wait = new ModalDialog();
 					SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
 
-						private String errorMessage;
+						private String errorMessage = "";
+						private String errorDetail = "";
 
 						@Override
 						protected Void doInBackground() throws Exception {
@@ -153,7 +154,9 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 									new Track(source)
 											.writeTo(new File(target, targetFileNames.next()).getAbsolutePath(), true);
 								} catch (Exception ex) {
-									errorMessage = ex.getMessage();
+									errorMessage += file.getName() + ": " + ex.getMessage() + "<br/>\n";
+									errorDetail += file.getName() + ": " + ex.getMessage() + "\n"
+											+ ExceptionUtil.getStacktrace(ex) + "-------------------------\n\n";
 								}
 							}
 							return null;
@@ -162,8 +165,10 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 						protected void done() {
 							wait.close();
 							update(target);
-							if (errorMessage != null) {
-								new ModalDialog().makeToast("Fehler!", errorMessage, frame, Duration.LONG);
+							if (errorMessage.length() > 0) {
+								new ModalDialog().makeToast("Fehler!", "<html>" + errorMessage + "</html>", frame,
+										Duration.LONG);
+								showError("Fehler beim Datei-Import", errorDetail);
 							}
 						}
 
@@ -345,6 +350,18 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 				}
 			}
 		});
+		
+		trackTable.getTableHeader().addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				if (e.getClickCount() == 2) {
+					int column = trackTable.columnAtPoint(e.getPoint());
+					trackTableModel.sort(column);
+					persistTrackOrder.setEnabled(true);
+				}
+			}
+		});
+		
 		trackTable.setRowSelectionAllowed(false);
 		fileScrollPane = new JScrollPane(trackTable);
 

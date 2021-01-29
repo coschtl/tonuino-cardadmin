@@ -7,19 +7,18 @@ public class TableHeader implements Serializable {
 	private static final long serialVersionUID = 1L;
 
 	private final String name;
-	private final ValueResolver<?> valueResolver;
+	private final ValueAdapter<?> valueAdapter;
 	
-	public TableHeader(String name, ValueResolver<?> valueResolver) {
+	public TableHeader(String name, ValueAdapter<?> valueAdapter) {
 		this.name = name;
-		this.valueResolver = valueResolver;
+		this.valueAdapter = valueAdapter;
 	}
 	public String getName() {
 		return name;
 	}
-	public ValueResolver<?> getValueResolver() {
-		return valueResolver;
+	
+	public ValueAdapter<?> getValueAdapter() {
+		return valueAdapter;
 	}
 	
-	
-
 }
