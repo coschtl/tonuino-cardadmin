@@ -464,7 +464,7 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 
 			protected void done() {
 				wait.close();
-				normalize.setEnabled(!trackTableModel.getTracks().isEmpty());
+				normalize.setEnabled(!trackTableModel.getTracks().isEmpty() && Configuration.getInstance().hasNormalizer());
 			}
 
 		};
