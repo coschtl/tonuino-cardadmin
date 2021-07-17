@@ -238,7 +238,7 @@ public class FilesystemView implements DirectorySelectionListener, TrackListener
 				SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
 					@Override
 					protected Void doInBackground() throws Exception {
-						new IndexGenerator().createIndexfile(cardRoot);
+						new IndexGenerator(Configuration.getInstance().getIndexFormat()).createIndexfile(cardRoot);
 						return null;
 					}
 

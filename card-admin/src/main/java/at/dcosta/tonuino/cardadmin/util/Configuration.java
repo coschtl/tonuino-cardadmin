@@ -10,6 +10,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
+import at.dcosta.tonuino.cardadmin.IndexGenerator.IndexFormat;
+
 public class Configuration {
 
 	private static final String CONFIGURATION_PROPERTIES = "configuration.properties";
@@ -74,6 +76,14 @@ public class Configuration {
 
 	public String getCardIndexLocation() {
 		return props.getProperty("card-index.location");
+	}
+	
+	public IndexFormat getIndexFormat() {
+		String format =  props.getProperty("card-index.format");
+		if ("csv".equalsIgnoreCase(format)) {
+			return IndexFormat.CSV;
+		}
+		return IndexFormat.HUMAN_READABLE;
 	}
 
 	public List<String> getNormalizerCommand() {

@@ -25,6 +25,7 @@ public class Track {
 	private int trackNumber;
 	private ID3v1 tag;
 	private boolean modified;
+	private long lengthInSeconds;
 	private TrackListener listener;
 
 	public Track(Path path) throws UnsupportedTagException, InvalidDataException, IOException {
@@ -62,6 +63,11 @@ public class Track {
 			trackNumber = 0;
 			setModified();
 		}
+		lengthInSeconds = mp3File.getLengthInSeconds();
+	}
+	
+	public long getLengthInSeconds() {
+		return lengthInSeconds;
 	}
 
 	public Path getPath() {
